@@ -2,23 +2,39 @@ const http = require("http");
 const fs = require("fs");
 const path = require("path");
 
-const root = path.join(__dirname, "dist");
-const port = Number(process.env.PORT || 8000);
+const host = "0.0.0.0";
+const port = process.env.PORT || 3000;
+const distIndex = path.join(__dirname, "dist", "index.html");
 
-http.createServer((req, res) => {
-  const requestedPath = req.url === "/" ? "/index.html" : req.url;
-  const filePath = path.join(root, requestedPath);
+const server = http.createServer((req, res) => {
+  const url = new URL(req.url, `http://${req.headers.host || "localhost"}`);
 
-  fs.readFile(filePath, (err, data) => {
+  if (url.pathname === "/health") {
+    res.writeHead(200, { "Content-Type": "text/plain" });
+    if (req.method === "HEAD") {
+      res.end();
+      return;
+    }
+    res.end("ok");
+    return;
+  }
+
+  fs.readFile(distIndex, (err, data) => {
     if (err) {
-      res.writeHead(404);
+      res.writeHead(404, { "Content-Type": "text/plain" });
       res.end("Not Found");
       return;
     }
 
-    res.writeHead(200);
+    res.writeHead(200, { "Content-Type": "text/html" });
+    if (req.method === "HEAD") {
+      res.end();
+      return;
+    }
     res.end(data);
   });
-}).listen(port, "0.0.0.0", () => {
-  console.log(`Server listening on ${port}`);
+});
+
+server.listen(port, host, () => {
+  console.log(`Server listening on ${host}:${port}`);
 });
